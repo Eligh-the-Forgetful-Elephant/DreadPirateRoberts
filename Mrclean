@@ -1,0 +1,21 @@
+package main
+
+import (
+    "fmt"
+    "os/exec"
+)
+
+func clearLogs() {
+    logs := []string{"/var/log/auth.log", "/var/log/syslog"}
+    for _, log := range logs {
+        if err := exec.Command("bash", "-c", fmt.Sprintf("echo '' > %s", log)).Run(); err != nil {
+            fmt.Printf("Failed to clear %s: %v\n", log, err)
+        } else {
+            fmt.Printf("Cleared %s\n", log)
+        }
+    }
+}
+
+func main() {
+    clearLogs()
+}
